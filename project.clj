@@ -9,6 +9,28 @@
                  [ring/ring-jetty-adapter "1.8.0"]
                  [ring-cors "0.1.13"]
                  [compojure "1.6.1"]
-                 ]
-  :main reframe-ring-backend.core
+                 [clj-http "3.10.1"]
+                 [org.clojure/data.json "1.0.0"]
+                 [environ "1.2.0"]
+                 [org.clojure/tools.logging "1.1.0"]
+                 [ch.qos.logback/logback-classic "1.2.3"]]
+
+  :plugins [[lein-environ "1.2.0"]]
+
+  :profiles {
+             :dev           [:project/dev :profiles/dev]
+             :test          [:project/test :profiles/test]
+             :repl          [:project/repl :profiles/repl]
+             ;; only edit :profiles/* in profiles.clj
+             :profiles/dev  {}
+             :profiles/test {}
+             :profiles/repl {}
+             :project/dev   {:source-paths ["src"]
+                             :dependencies []
+                             :plugins      [[lein-pprint "1.3.2"]]}
+             :project/test  {}
+             :project/repl {}
+             :uberjar {:aot :all}}
+
+  :main ^:skip-aot reframe-ring-backend.core
   :repl-options {:init-ns reframe-ring-backend.core})
