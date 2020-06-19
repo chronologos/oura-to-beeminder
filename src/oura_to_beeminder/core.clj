@@ -16,6 +16,12 @@
 (def beeminder-token
   (env :beeminder-token))
 
+(def beeminder-user
+  (env :beeminder-user))
+
+(def beeminder-goal-id
+  (env :beeminder-goal-id))
+
 ;; Oura data will be synced on next day, so subtract one day to get the previous night's sleep.
 (defn now-oura-format [date offset] (let [ cal (Calendar/getInstance)
                                           _ (.setTime cal date)
@@ -53,7 +59,7 @@
                               "auth_token" beeminder-token}}))
 
 (defn update-bmdr-data [daystamp val comment]
-  (client/post "https://www.beeminder.com/api/v1/users/ulysses9/goals/sleepscore/datapoints.json"
+  (client/post "https://www.beeminder.com/api/v1/users/" + beeminder-user + "/goals/" + beeminder-goal-id + "/datapoints.json"
                {:form-params {"auth_token" beeminder-token
                               "daystamp" daystamp
                               "value" val
@@ -76,4 +82,6 @@
           (filterv #(should-sync % bmdr-data-mod) d)
           (mapv #(update-bmdr-data (get % "summary_date") (get % "score") "autosync") d))))
 
-(defn -main [] (get-all-data 4))
+(defn -main [] (if (or (= beeminder-goal-id nil) (= beeminder-user nil) (= beeminder-token nil) (= oura-token nil))
+                 (prn "one or more env vars not defined")
+                 (get-all-data 4)))
