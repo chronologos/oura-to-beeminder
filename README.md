@@ -1,6 +1,6 @@
-# reframe-ring-backend
+# oura-to-beeminder
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to sync data from your Oura ring to Beeminder.
 
 ## Usage
 

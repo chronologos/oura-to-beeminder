@@ -1,12 +1,13 @@
-(ns reframe-ring-backend.core
+(ns oura-to-beeminder.core
   (:require
     [compojure.core :refer :all]
     [clj-http.client :as client]
     [clojure.data.json :as json]
     [clojure.tools.logging :as log]
-    [environ.core :refer [env]])
+    [environ.core :refer [env]]
+    [clojure.spec.alpha :as s])
   (:import (java.text SimpleDateFormat)
-           (java.util Calendar))
+           (java.util Calendar Date))
   (:gen-class))
 
 (def oura-token
@@ -28,11 +29,11 @@
     (.format formatter date)))
 
 (defn get-oura-data [lookback-days]
-  (log/debug (now-oura-format (java.util.Date.) lookback-days))
+  (log/debug (now-oura-format (Date.) lookback-days))
   (log/debug oura-token)
   (client/get "https://api.ouraring.com/v1/sleep"
               {:query-params {
-                              "start" (now-oura-format (java.util.Date.) lookback-days)
+                              "start" (now-oura-format (Date.) lookback-days)
                               ;"end" "2020-05-19"
                               "access_token" oura-token}}))
 

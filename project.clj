@@ -1,5 +1,5 @@
-(defproject reframe-ring-backend "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+(defproject oura-to-beeminder "0.1.0-SNAPSHOT"
+  :description "Syncs Oura data to Beeminder."
   :url "http://example.com/FIXME"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
@@ -32,5 +32,5 @@
              :project/repl {}
              :uberjar {:aot :all}}
 
-  :main ^:skip-aot reframe-ring-backend.core
-  :repl-options {:init-ns reframe-ring-backend.core})
+  :main ^:skip-aot oura-to-beeminder.core
+  :repl-options {:init-ns oura-to-beeminder.core})

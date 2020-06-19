@@ -1,6 +1,6 @@
-(ns reframe-ring-backend.core-test
+(ns oura-to-beeminder.core-test
   (:require [clojure.test :refer :all]
-            [reframe-ring-backend.core :refer :all]))
+            [oura-to-beeminder.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
