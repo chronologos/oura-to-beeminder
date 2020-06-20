@@ -59,7 +59,7 @@
                               "auth_token" beeminder-token}}))
 
 (defn update-bmdr-data [daystamp val comment]
-  (client/post "https://www.beeminder.com/api/v1/users/" + beeminder-user + "/goals/" + beeminder-goal-id + "/datapoints.json"
+  (client/post (str "https://www.beeminder.com/api/v1/users/" beeminder-user "/goals/" beeminder-goal-id "/datapoints.json")
                {:form-params {"auth_token" beeminder-token
                               "daystamp" daystamp
                               "value" val
