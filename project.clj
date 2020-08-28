@@ -13,7 +13,8 @@
                  [org.clojure/data.json "1.0.0"]
                  [environ "1.2.0"]
                  [org.clojure/tools.logging "1.1.0"]
-                 [ch.qos.logback/logback-classic "1.2.3"]]
+                 [ch.qos.logback/logback-classic "1.2.3"]
+                 ]
 
   :plugins [[lein-environ "1.2.0"]]
 

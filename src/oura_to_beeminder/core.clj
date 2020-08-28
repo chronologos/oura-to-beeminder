@@ -53,7 +53,7 @@
 
 (defn get-bmdr-data []
   (log/debug beeminder-token)
-  (client/get "https://www.beeminder.com/api/v1/users/ulysses9/goals/sleepscore.json"
+  (client/get (str "https://www.beeminder.com/api/v1/users/ulysses9/goals/"  beeminder-goal-id ".json")
               {:query-params {
                               "count" 10
                               "auth_token" beeminder-token}}))
