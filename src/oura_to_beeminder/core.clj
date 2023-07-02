@@ -18,6 +18,11 @@
 (s/def :oura/body string?)
 (s/def :oura/http-raw-data (s/keys :req-un [:oura/body]))
 
+(s/def :bmdr/datum (s/keys :req-un [:bmdr/daystamp :bmdr/value :bmdr/comment]))
+(s/def :bmdr/data (s/coll-of :bmdr/datum))
+(s/def :bmdr/body string?)
+(s/def :bmdr/http-raw-data (s/keys :req-un [:bmdr/body]))
+
 (def oura-token
   (env :oura-token))
 
@@ -37,7 +42,7 @@
                                           current-date-minus-one (.getTime cal)]
                                       (.format (SimpleDateFormat. "yyyy-MM-dd") current-date-minus-one)))
 
-(defn bmdr-time-str-to-oura [date-str]
+(defn bmdr-extract-date [date-str]
   (let [date (.parse (SimpleDateFormat. "yyyyMMdd") (get (.split date-str "T") 0))
         formatter (SimpleDateFormat. "yyyy-MM-dd")]
     (.format formatter date)))
@@ -48,7 +53,7 @@
         formatter (SimpleDateFormat. "yyyy-MM-dd")]
     (.format formatter date)))
 
-(defn get-oura-http [lookback-days]
+(defn oura-httpfetcher [lookback-days]
   (log/debug (now-oura-format (Date.) lookback-days))
   (log/debug oura-token)
   (keywordize-keys
@@ -58,26 +63,36 @@
                                }
                 :headers {"Authorization" (str "Bearer " oura-token)}})))
 
-(defn get-oura-sleep-data [lookback-days]
-  (let [oura-data (->
-                   (get-oura-http lookback-days)
-                          ;;  #(log/debug "oura-data" %)
-                   :body
-                   json/read-str
-                   (get "data"))]
-    (->> oura-data
+(defn get-oura-sleep-data [httpfetcher lookback-days]
+  (let [raw (httpfetcher lookback-days)
+        res (-> raw
+                  ;;  #(log/debug "oura-data" %)
+                :body
+                json/read-str
+                (get "data"))]
+    (->> res
          (mapv keywordize-keys)
          (mapv #(select-keys % [:score :timestamp]))
          (mapv #(rename-keys % {:timestamp :daystamp}))
          (mapv #(update % :daystamp oura-extract-date)))))
 
-(defn get-bmdr-http []
+(defn bmdr-httpfetcher [count]
   (log/debug beeminder-token)
-  (client/get (str "https://www.beeminder.com/api/v1/users/ulysses9/goals/"  beeminder-goal-id ".json")
-              {:query-params {"count" 10
+  (client/get (str "https://www.beeminder.com/api/v1/users/ulysses9/goals/"  beeminder-goal-id "/datapoints.json")
+              {:query-params {"count" count
                               "auth_token" beeminder-token}}))
 
+(defn get-bmdr [httpfetcher count]
+  (let [raw (httpfetcher count)
+        res (-> raw
+                :body
+                json/read-str)]
+    (->> res
+         (mapv keywordize-keys)
+         (mapv #(update % :daystamp bmdr-extract-date)))))
+
 (defn update-bmdr-data [daystamp val comment]
+  (log/debug "update-bmdr-data" daystamp val comment)
   (client/post (str "https://www.beeminder.com/api/v1/users/" beeminder-user "/goals/" beeminder-goal-id "/datapoints.json")
                {:form-params {"auth_token" beeminder-token
                               "daystamp" daystamp
@@ -85,22 +100,16 @@
                               "comment" comment}}))
 
 (defn should-sync [oura bmdr-data]
-  (let [oura-date (get oura "timestamp")]
-    (not-any? #(= (get % "daystamp") oura-date) bmdr-data)))
+  (let [oura-date (:daystamp oura)]
+    (not-any? #(= (:daystamp %) oura-date) bmdr-data)))
 
 (defn get-all-data [lookback-days]
-  (let [bmdr-data (->
-                   (get-bmdr-http)
-                   :body
-                   json/read-str
-                     ;; apparently max number of points here is 5
-                   (get "recent_data"))
-        bmdr-data-mod (mapv #(update % "daystamp" bmdr-time-str-to-oura) bmdr-data)
-        _ (log/debug "bmdr-data-mod" bmdr-data-mod)
-        oura-data (get-oura-sleep-data lookback-days)
+  (let [bmdr-data (get-bmdr bmdr-httpfetcher 30)
+        _ (log/debug "bmdr-data-mod" bmdr-data)
+        oura-data (get-oura-sleep-data oura-httpfetcher (dec lookback-days))
         _ (log/debug "oura-data" oura-data)]
     (as-> oura-data d
-      (filterv #(should-sync % bmdr-data-mod) d)
+      (filterv #(should-sync % bmdr-data) d)
       (mapv #(update-bmdr-data (:daystamp %) (:score %) "autosync") d))))
 
 (defn -main [] (if (or (= beeminder-goal-id nil) (= beeminder-user nil) (= beeminder-token nil) (= oura-token nil))
