@@ -63,6 +63,13 @@
                                }
                 :headers {"Authorization" (str "Bearer " oura-token)}})))
 
+(defn parse-sleep-data-json [json]
+  (->> (get json "data")
+       (mapv keywordize-keys)
+       (mapv #(select-keys % [:score :timestamp]))
+       (mapv #(rename-keys % {:timestamp :daystamp}))
+       (mapv #(update % :daystamp oura-extract-date))))
+
 (defn get-oura-sleep-data [httpfetcher lookback-days]
   (let [raw (httpfetcher lookback-days)
         res (-> raw
@@ -70,11 +77,7 @@
                 :body
                 json/read-str
                 (get "data"))]
-    (->> res
-         (mapv keywordize-keys)
-         (mapv #(select-keys % [:score :timestamp]))
-         (mapv #(rename-keys % {:timestamp :daystamp}))
-         (mapv #(update % :daystamp oura-extract-date)))))
+    (parse-sleep-data-json res)))
 
 (defn bmdr-httpfetcher [count]
   (log/debug beeminder-token)
@@ -99,19 +102,19 @@
                               "value" val
                               "comment" comment}}))
 
-(defn should-sync [oura bmdr-data]
-  (let [oura-date (:daystamp oura)]
-    (not-any? #(= (:daystamp %) oura-date) bmdr-data)))
+(defn should-sync [from tos pk-key]
+  (let [from-pk (pk-key from)]
+    (not-any? #(= (pk-key %) from-pk) tos)))
 
-(defn get-all-data [lookback-days]
-  (let [bmdr-data (get-bmdr bmdr-httpfetcher 30)
-        _ (log/debug "bmdr-data-mod" bmdr-data)
-        oura-data (get-oura-sleep-data oura-httpfetcher (dec lookback-days))
-        _ (log/debug "oura-data" oura-data)]
-    (as-> oura-data d
-      (filterv #(should-sync % bmdr-data) d)
-      (mapv #(update-bmdr-data (:daystamp %) (:score %) "autosync") d))))
+(defn sync-data [lookback-days]
+  (let [to (get-bmdr bmdr-httpfetcher 30)
+        _ (log/debug "bmdr-data-mod" to)
+        from (get-oura-sleep-data oura-httpfetcher (dec lookback-days))
+        _ (log/debug "oura-data" from)]
+    (as-> from from
+      (filterv #(should-sync % to :daystamp) from)
+      (mapv #(update-bmdr-data (:daystamp %) (:score %) "autosync") from))))
 
 (defn -main [] (if (or (= beeminder-goal-id nil) (= beeminder-user nil) (= beeminder-token nil) (= oura-token nil))
                  (prn "one or more env vars not defined")
-                 (get-all-data 10)))
+                 (sync-data 10)))
