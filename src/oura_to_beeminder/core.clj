@@ -75,8 +75,7 @@
         res (-> raw
                   ;;  #(log/debug "oura-data" %)
                 :body
-                json/read-str
-                (get "data"))]
+                json/read-str)]
     (parse-sleep-data-json res)))
 
 (defn bmdr-httpfetcher [count]
